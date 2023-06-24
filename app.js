@@ -1,47 +1,63 @@
-const AsyncLock = require('async-lock');
-
-// Create a lock instance
+import AsyncLock from 'async-lock';
 const lock = new AsyncLock();
 
-// Shared data
-let sharedData = 0;
+const sharedData = {
+    varA: 0,
+    varB: 0,
+    varC: 0,
 
-// Function that performs an asynchronous operation with a lock
-async function operationWithLock() {
-  // Acquire the lock
-  const release = await lock.acquire();
+    getData(key) {
+        return this[key];
+    },
 
-  try {
-    // Perform operations on the shared data within the lock
-    sharedData++;
-    await someAsyncOperation();
-    sharedData += 2;
-  } finally {
-    // Release the lock
-    release();
-  }
+    setData(key, value) {
+        const sdThis = this;
+        lock.acquire(key, function () {
+            // Concurrency safe
+            sdThis[key] = value;
+        }, function (err, ret) {
+        });
+    }
 }
 
 // Helper function simulating an asynchronous operation
 function someAsyncOperation() {
-  return new Promise((resolve) => {
-    setTimeout(resolve, 1000);
-  });
+    return new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+    });
+}
+
+function operation1() {
+    let varA = sharedData.getData('varA');
+    console.log('op1: recieved varA:', varA);
+    sharedData.setData('varA', varA + 1);
+    varA = sharedData.getData('varA');
+    console.log('op1: set varA:', varA + 1);
+}
+
+function operation2() {
+    let varA = sharedData.getData('varA');
+    console.log('op2: recieved varA:', varA);
+    sharedData.setData('varA', varA + 1);
+    varA = sharedData.getData('varA');
+    console.log('op2: set varA:', varA + 1);
 }
 
 // Usage example
 async function main() {
-  console.log('Shared data before:', sharedData);
+    console.log('Shared data before:' + JSON.stringify(sharedData, null, 2));
 
-  await Promise.all([
-    operationWithLock(),
-    operationWithLock(),
-  ]);
+    /* await Promise.all([
+        operation1(),
+        operation2(),
+    ]); */
 
-  console.log('Shared data after:', sharedData);
+    await operation1();
+    await operation2();
+
+    console.log('Shared data after:' + JSON.stringify(sharedData, null, 2));
 }
 
-// Call the main function
 main();
 
 

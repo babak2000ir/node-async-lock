@@ -20,7 +20,7 @@ function operation1() {
 
 function operation2() {
     return new Promise((resolve, reject) => {
-        lock.acquire('lock2', function () { //lock1/lock2 to compare
+        lock.acquire('lock1', function () { //lock1/lock2 to compare
             console.log('op2:lock');
 
             setTimeout(() => {
@@ -42,6 +42,10 @@ async function main() {
         operation1(),
         operation2(),
     ]);
+
+    setInterval(() => {
+        console.log('sharedData: ' + sharedData);
+    }, 1);
 
     console.log('Shared data after: ' + sharedData);
     console.log('Time elapsed:' + (Date.now() - start));
